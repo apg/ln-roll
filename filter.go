@@ -11,7 +11,7 @@ import (
 
 // New returns a new FilterFunc which reports errors to Rollbar.
 func New(client roll.Client) ln.FilterFunc {
-	return func(e ln.Event) bool {
+	return ln.FilterFunc(func(e ln.Event) bool {
 		if e.Pri < ln.PriError {
 			return true
 		}
@@ -50,7 +50,7 @@ func New(client roll.Client) ln.FilterFunc {
 		}()
 
 		return true
-	}
+	})
 }
 
 func toString(v interface{}) string {
