@@ -32,22 +32,20 @@ func New(client roll.Client) ln.FilterFunc {
 			}
 		}
 
-		go func() {
-			switch e.Pri {
-			case ln.PriError:
-				uid, err := client.Error(err, extras)
-				if err != nil {
-					// These can't be Error or lnroll will recursively handle
-					ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
-				}
-			case ln.PriCritical, ln.PriAlert, ln.PriEmergency:
-				uid, err := client.Critical(err, extras)
-				if err != nil {
-					// These can't be Error or lnroll will recursively handle
-					ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
-				}
+		switch e.Pri {
+		case ln.PriError:
+			uid, err := client.Error(err, extras)
+			if err != nil {
+				// These can't be Error or lnroll will recursively handle
+				ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
 			}
-		}()
+		case ln.PriCritical, ln.PriAlert, ln.PriEmergency:
+			uid, err := client.Critical(err, extras)
+			if err != nil {
+				// These can't be Error or lnroll will recursively handle
+				ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
+			}
+		}
 
 		return true
 	})
