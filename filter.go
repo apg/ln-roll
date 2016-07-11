@@ -6,11 +6,15 @@ import (
 	"time"
 
 	"github.com/apg/ln"
-	"github.com/stvp/roll"
 )
 
+type Client interface {
+	Critical(err error, extras map[string]string) (uuid string, e error)
+	Error(err error, extras map[string]string) (uuid string, e error)
+}
+
 // New returns a new FilterFunc which reports errors to Rollbar.
-func New(client roll.Client) ln.FilterFunc {
+func New(client Client) ln.FilterFunc {
 	return ln.FilterFunc(func(e ln.Event) bool {
 		if e.Pri < ln.PriError {
 			return true
