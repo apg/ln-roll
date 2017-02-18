@@ -1,12 +1,11 @@
 package lnroll
 
 import (
-	"errors"
 	"fmt"
-	"runtime"
 	"time"
 
 	"github.com/apg/ln"
+	"github.com/pkg/errors"
 	"github.com/stvp/roll"
 )
 
@@ -34,8 +33,22 @@ func New() ln.FilterFunc {
 		}
 
 		// grab a list of pointers to all of the functions in the callstack
+		type stackTracer interface {
+			StackTrace() errors.StackTrace
+		}
+
+		sterr, ok := err.(stackTracer)
+		if !ok {
+			panic("oops, err does not implement stackTracer")
+		}
+
+		st := sterr.StackTrace()
 		pc := []uintptr{}
-		runtime.Callers(1, pc)
+
+		// roll wants a slice of uintptr, we have []errors.Frame, fix this
+		for _, val := range st {
+			pc = append(pc, uintptr(val))
+		}
 
 		switch e.Pri {
 		case ln.PriError:
