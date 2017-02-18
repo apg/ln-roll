@@ -3,18 +3,15 @@ package lnroll
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/apg/ln"
+	"github.com/stvp/roll"
 )
 
-type Client interface {
-	Critical(err error, extras map[string]string) (uuid string, e error)
-	Error(err error, extras map[string]string) (uuid string, e error)
-}
-
 // New returns a new FilterFunc which reports errors to Rollbar.
-func New(client Client) ln.FilterFunc {
+func New() ln.FilterFunc {
 	return ln.FilterFunc(func(e ln.Event) bool {
 		if e.Pri < ln.PriError {
 			return true
@@ -36,15 +33,19 @@ func New(client Client) ln.FilterFunc {
 			}
 		}
 
+		// grab a list of pointers to all of the functions in the callstack
+		pc := []uintptr{}
+		runtime.Callers(1, pc)
+
 		switch e.Pri {
 		case ln.PriError:
-			uid, err := client.Error(err, extras)
+			uid, err := roll.ErrorStack(err, pc, extras)
 			if err != nil {
 				// These can't be Error or lnroll will recursively handle
 				ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
 			}
 		case ln.PriCritical, ln.PriAlert, ln.PriEmergency:
-			uid, err := client.Critical(err, extras)
+			uid, err := roll.CriticalStack(err, pc, extras)
 			if err != nil {
 				// These can't be Error or lnroll will recursively handle
 				ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
