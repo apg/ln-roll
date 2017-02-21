@@ -6,13 +6,24 @@ import (
 
 	"github.com/apg/ln"
 	"github.com/pkg/errors"
-	"github.com/stvp/roll"
 )
 
+type Client interface {
+	Critical(err error, extras map[string]string) (uuid string, e error)
+	CriticalStack(err error, ptrs []uintptr, custom map[string]string) (uuid string, e error)
+	Error(err error, extras map[string]string) (uuid string, e error)
+	ErrorStack(err error, ptrs []uintptr, custom map[string]string) (uuid string, e error)
+}
+
+// grab a list of pointers to all of the functions in the callstack
+type stackTracer interface {
+	StackTrace() errors.StackTrace
+}
+
 // New returns a new FilterFunc which reports errors to Rollbar.
-func New() ln.FilterFunc {
+func New(client Client) ln.FilterFunc {
 	return ln.FilterFunc(func(e ln.Event) bool {
-		if e.Pri < ln.PriError {
+		if e.Pri > ln.PriError {
 			return true
 		}
 
@@ -32,33 +43,44 @@ func New() ln.FilterFunc {
 			}
 		}
 
-		// grab a list of pointers to all of the functions in the callstack
-		type stackTracer interface {
-			StackTrace() errors.StackTrace
-		}
-
 		sterr, ok := err.(stackTracer)
 		if !ok {
-			panic("oops, err does not implement stackTracer")
+			switch e.Pri {
+			case ln.PriError:
+				uid, err := client.Error(err, extras)
+				if err != nil {
+					// These can't be Error or lnroll will recursively handle
+					ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
+				}
+			case ln.PriCritical, ln.PriAlert, ln.PriEmergency:
+				uid, err := client.Critical(err, extras)
+				if err != nil {
+					// These can't be Error or lnroll will recursively handle
+					ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
+				}
+			}
+			return true
 		}
 
+		// Have a stack, so let's prepare it.
 		st := sterr.StackTrace()
-		pc := []uintptr{}
 
-		// roll wants a slice of uintptr, we have []errors.Frame, fix this
+		var pc []uintptr
+
+		// client wants a slice of uintptr, we have []errors.Frame, fix this
 		for _, val := range st {
 			pc = append(pc, uintptr(val))
 		}
 
 		switch e.Pri {
 		case ln.PriError:
-			uid, err := roll.ErrorStack(err, pc, extras)
+			uid, err := client.ErrorStack(err, pc, extras)
 			if err != nil {
 				// These can't be Error or lnroll will recursively handle
 				ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
 			}
 		case ln.PriCritical, ln.PriAlert, ln.PriEmergency:
-			uid, err := roll.CriticalStack(err, pc, extras)
+			uid, err := client.CriticalStack(err, pc, extras)
 			if err != nil {
 				// These can't be Error or lnroll will recursively handle
 				ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
