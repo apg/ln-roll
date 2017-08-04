@@ -43,6 +43,23 @@ func New(client Client) ln.FilterFunc {
 			}
 		}
 
+		// e.Data was empty or e.Data["err"/"error"] didn't exist, so err wasn't set.
+		if err == nil {
+			if e.Message != "" { // if we have a message though, may as well use that. This could happen via: ln.Error(fmt.Sprintf("ERROR!"))
+				err = errors.New(e.Message)
+			} else {
+				if len(extras) == 0 { // nothing to report (no message, no extras)
+					return true
+				}
+			}
+		}
+
+		defer func() {
+			if r := recover(); r != nil {
+				ln.Info(ln.F{"msg": "Panic while trying to report error to rollbar", "panic": true, "recover": true, "err": r})
+			}
+		}()
+
 		sterr, ok := err.(stackTracer)
 		if !ok {
 			switch e.Pri {
