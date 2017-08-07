@@ -28,6 +28,9 @@ func (c *mockClient) CriticalStack(err error, pc []uintptr, extras map[string]st
 }
 
 func (c *mockClient) Error(err error, extras map[string]string) (uuid string, e error) {
+	if err == nil {
+		panic("err is nil")
+	}
 	c.E++
 	return
 }
@@ -57,6 +60,22 @@ func TestFilter(t *testing.T) {
 	if m.C == 0 {
 		t.Errorf("Filter didn't fire on Critical %+v", m)
 	}
+}
+
+func TestFilterWithString(t *testing.T) {
+	var m mockClient
+	underTest := New(&m)
+
+	log := ln.Logger{
+		Pri:     ln.PriError,
+		Filters: []ln.Filter{underTest},
+	}
+
+	log.Error(fmt.Sprintf("ERROR!"))
+	log.Error(nil)
+	log.Error()
+	var xs []interface{}
+	log.Error(xs)
 }
 
 func TestFilterWithStack(t *testing.T) {
