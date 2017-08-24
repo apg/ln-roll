@@ -57,7 +57,7 @@ func New(client Client) ln.FilterFunc {
 
 		defer func() {
 			if r := recover(); r != nil {
-				ln.Info(ln.F{"msg": "Panic while trying to report error to rollbar", "panic": true, "recover": true, "err": r})
+				ln.Info(ctx, ln.F{"msg": "Panic while trying to report error to rollbar", "panic": true, "recover": true, "err": r})
 			}
 		}()
 
@@ -81,7 +81,7 @@ func New(client Client) ln.FilterFunc {
 			}
 			if uid, err := rf(err, pc, extras); err != nil {
 				// These can't be Error or lnroll will recursively handle
-				ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
+				ln.Info(ctx, ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
 			}
 
 			return true
@@ -96,7 +96,7 @@ func New(client Client) ln.FilterFunc {
 		}
 		if uid, err := rf(err, extras); err != nil {
 			// These can't be Error or lnroll will recursively handle
-			ln.Info(ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
+			ln.Info(ctx, ln.F{"err": err, "uuid": uid, "priority": e.Pri.String(), "action": "rollbar-report"})
 		}
 		return true
 
