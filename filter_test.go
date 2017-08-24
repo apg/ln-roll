@@ -1,12 +1,17 @@
 package lnroll
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/apg/ln"
 	"github.com/pkg/errors"
 )
+
+var ctx context.Context
+
+func init() { ctx = context.Background() }
 
 type mockClient struct {
 	C  int
@@ -51,12 +56,12 @@ func TestFilter(t *testing.T) {
 		Filters: []ln.Filter{underTest},
 	}
 
-	log.Error(ln.F{"err": fmt.Errorf("an error without a stack")})
+	log.Error(ctx, ln.F{"err": fmt.Errorf("an error without a stack")})
 	if m.E == 0 {
 		t.Errorf("Filter didn't fire on Error %+v", m)
 	}
 
-	log.Critical(ln.F{"err": fmt.Errorf("an error without a stack")})
+	log.Critical(ctx, ln.F{"err": fmt.Errorf("an error without a stack")})
 	if m.C == 0 {
 		t.Errorf("Filter didn't fire on Critical %+v", m)
 	}
@@ -71,11 +76,11 @@ func TestFilterWithString(t *testing.T) {
 		Filters: []ln.Filter{underTest},
 	}
 
-	log.Error(fmt.Sprintf("ERROR!"))
-	log.Error(nil)
-	log.Error()
+	log.Error(ctx, fmt.Sprintf("ERROR!"))
+	log.Error(ctx, nil)
+	log.Error(ctx)
 	var xs []interface{}
-	log.Error(xs)
+	log.Error(ctx, xs)
 }
 
 func TestFilterWithStack(t *testing.T) {
@@ -88,13 +93,13 @@ func TestFilterWithStack(t *testing.T) {
 	}
 
 	err := errors.Wrap(errors.New("hi"), "stack")
-	log.Error(ln.F{"err": err})
+	log.Error(ctx, ln.F{"err": err})
 	if m.ES == 0 {
 		t.Errorf("Filter didn't fire on Error %+v", *m)
 	}
 
 	err = errors.Wrap(errors.New("hi"), "stack 2")
-	log.Critical(ln.F{"err": err})
+	log.Critical(ctx, ln.F{"err": err})
 	if m.CS == 0 {
 		t.Errorf("Filter didn't fire on Critical %+v", *m)
 	}

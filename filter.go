@@ -1,6 +1,7 @@
 package lnroll
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -22,7 +23,7 @@ type stackTracer interface {
 
 // New returns a new FilterFunc which reports errors to Rollbar.
 func New(client Client) ln.FilterFunc {
-	return ln.FilterFunc(func(e ln.Event) bool {
+	return ln.FilterFunc(func(ctx context.Context, e ln.Event) bool {
 		if e.Pri > ln.PriError {
 			return true
 		}
