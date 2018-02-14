@@ -3,11 +3,9 @@ package lnroll
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"time"
 
 	"github.com/apg/ln"
-	"github.com/heroku/x/scrub"
 	"github.com/pkg/errors"
 )
 
@@ -21,19 +19,6 @@ type Client interface {
 // grab a list of pointers to all of the functions in the callstack
 type stackTracer interface {
 	StackTrace() errors.StackTrace
-}
-
-func stripURLError(e error) error {
-	switch e.(type) {
-	case *url.Error:
-		ue := e.(*url.Error)
-		u, _ := url.Parse(ue.URL)
-		ue.URL = scrub.URL(u).String()
-
-		return ue
-	}
-
-	return e
 }
 
 // New returns a new FilterFunc which reports errors to Rollbar.
@@ -52,7 +37,7 @@ func New(client Client) ln.FilterFunc {
 				if e, ok := v.(error); !ok {
 					err = errors.New(toString(v))
 				} else {
-					err = stripURLError(e)
+					err = e
 				}
 			} else {
 				extras[k] = toString(v)

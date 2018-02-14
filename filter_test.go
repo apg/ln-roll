@@ -3,8 +3,6 @@ package lnroll
 import (
 	"context"
 	"fmt"
-	"net/url"
-	"strings"
 	"testing"
 
 	"github.com/apg/ln"
@@ -104,38 +102,5 @@ func TestFilterWithStack(t *testing.T) {
 	log.Critical(ctx, ln.F{"err": err})
 	if m.CS == 0 {
 		t.Errorf("Filter didn't fire on Critical %+v", *m)
-	}
-}
-
-func TestStripURLError(t *testing.T) {
-	cases := []struct {
-		name         string
-		err          error
-		secretToFind string
-	}{
-		{
-			name: "passthru",
-			err:  errors.New("test"),
-		},
-		{
-			name: "scrub secrets",
-			err: &url.Error{
-				Op:  "pan gangnam style",
-				URL: "http://AzureDiamond:hunter2@127.0.0.1/",
-				Err: errors.New("test"),
-			},
-		},
-	}
-
-	for _, cs := range cases {
-		t.Run(cs.name, func(t *testing.T) {
-			res := stripURLError(cs.err)
-			if cs.secretToFind != "" {
-				es := res.Error()
-				if strings.Contains(es, cs.secretToFind) {
-					t.Fatal("stripURLError didn't strip the password: %v", es)
-				}
-			}
-		})
 	}
 }
